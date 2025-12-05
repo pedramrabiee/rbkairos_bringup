@@ -1,0 +1,62 @@
+<?xml version="1.0"?>
+<robot name="rbkairos_plus_with_robotiq" xmlns:xacro="http://wiki.ros.org/xacro">
+
+  <!-- Arguments -->
+  <xacro:arg name="namespace" default="robot" />
+  <xacro:arg name="prefix" default="" />
+  <xacro:arg name="gazebo_ignition" default="true" />
+  <xacro:arg name="ur_type" default="ur5e" />
+  <xacro:arg name="use_gripper" default="true" />
+  <xacro:arg name="gripper_type" default="robotiq_2f_85" />  <!-- robotiq_2f_85 or robotiq_2f_140 -->
+
+  <!-- Include base RB-Kairos+ with UR5e -->
+  <xacro:include filename="$(find robotnik_description)/robots/rbkairos/rbkairos_plus.urdf.xacro" />
+
+  <!-- Include Robotiq gripper if requested -->
+  <xacro:if value="$(arg use_gripper)">
+    <!-- Include UR to Robotiq adapter -->
+    <xacro:include filename="$(find robotiq_description)/urdf/ur_to_robotiq_adapter.urdf.xacro" />
+
+    <!-- Include Robotiq gripper macro based on type -->
+    <xacro:if value="${'$(arg gripper_type)' == 'robotiq_2f_85'}">
+      <xacro:include filename="$(find robotiq_description)/urdf/robotiq_2f_85_macro.urdf.xacro" />
+    </xacro:if>
+    <xacro:if value="${'$(arg gripper_type)' == 'robotiq_2f_140'}">
+      <xacro:include filename="$(find robotiq_description)/urdf/robotiq_2f_140_macro.urdf.xacro" />
+    </xacro:if>
+
+    <!-- Attach adapter to UR5e tool0 -->
+    <xacro:ur_to_robotiq
+      parent="$(arg prefix)arm_tool0"
+      child="$(arg prefix)gripper_base_link"
+      prefix="$(arg prefix)gripper_adapter_" />
+
+    <!-- Attach Robotiq gripper to adapter -->
+    <xacro:if value="${'$(arg gripper_type)' == 'robotiq_2f_85'}">
+      <xacro:robotiq_gripper
+        name="$(arg namespace)_gripper"
+        parent="$(arg prefix)gripper_base_link"
+        prefix="$(arg prefix)gripper_"
+        sim_ignition="$(arg gazebo_ignition)"
+        include_ros2_control="$(arg gazebo_ignition)"
+        use_fake_hardware="false">
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+      </xacro:robotiq_gripper>
+
+      <!-- Mimic joints are handled by gz_ros2_control via ros2_control config -->
+    </xacro:if>
+
+    <xacro:if value="${'$(arg gripper_type)' == 'robotiq_2f_140'}">
+      <xacro:robotiq_gripper
+        name="$(arg namespace)_gripper"
+        parent="$(arg prefix)gripper_base_link"
+        prefix="$(arg prefix)gripper_"
+        sim_ignition="$(arg gazebo_ignition)"
+        include_ros2_control="$(arg gazebo_ignition)"
+        use_fake_hardware="false">
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+      </xacro:robotiq_gripper>
+    </xacro:if>
+  </xacro:if>
+
+</robot>

@@ -1,0 +1,57 @@
+# RB-Kairos+ Robot Configuration
+# Author: Pedram Rabiee (prabiee@3laws.io)
+
+robot:
+  # Robot identification
+  name: "rbkairos"
+  namespace: "rbkairos"
+  prefix: ""  # Will be set to namespace + "_" if namespace is provided
+
+  # Robot model configuration
+  model:
+    type: "rbkairos_plus"  # rbkairos or rbkairos_plus
+    ur_type: "ur5e"  # ur3, ur3e, ur5, ur5e, ur10, ur10e
+
+  # Gripper configuration
+  gripper:
+    enabled: true
+    type: "robotiq_2f_85"  # robotiq_2f_85, robotiq_2f_140, onrobot_rg2, none
+
+  # Initial spawn position
+  spawn:
+    position:
+      x: 0.0
+      y: 0.0
+      z: 0.0
+    orientation:
+      roll: 0.0
+      pitch: 0.0
+      yaw: 0.0
+
+# Simulation settings
+simulation:
+  use_sim_time: true
+  physics_engine: "ode"  # ode, bullet, dart
+  real_time_factor: 1.0
+
+# World configuration
+world:
+  name: "empty"  # empty, depot, warehouse, pick_place_demo
+  custom_world_path: ""  # Leave empty to use predefined worlds
+
+# Module enables
+modules:
+  navigation:
+    enabled: false
+    config_file: "nav2_params.yaml"
+
+  manipulation:
+    enabled: true
+    moveit_config: "moveit_config.yaml"
+
+  perception:
+    enabled: false
+    sensors:
+      - front_laser
+      - rear_laser
+      - front_rgbd_camera

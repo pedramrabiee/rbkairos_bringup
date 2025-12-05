@@ -1,0 +1,127 @@
+# Task-specific configurations
+# Author: Pedram Rabiee (prabiee@3laws.io)
+
+# Predefined robot poses
+robot_poses:
+  # Arm poses
+  arm:
+    home:
+      joints: [0.0, -1.57, 0.0, -1.57, 0.0, 0.0]
+      description: "Home position - arm upright"
+
+    transport:
+      joints: [0.0, -2.0, 1.57, -1.14, -1.57, 0.0]
+      description: "Compact position for navigation"
+
+    pre_grasp:
+      joints: [0.0, -1.2, 1.5, -1.87, -1.57, 0.0]
+      description: "Ready to approach object"
+
+    grasp:
+      joints: [0.0, -0.8, 1.2, -1.97, -1.57, 0.0]
+      description: "Grasping position"
+
+    place:
+      joints: [1.57, -1.2, 1.5, -1.87, -1.57, 0.0]
+      description: "Place object position"
+
+  # Gripper poses
+  gripper:
+    open:
+      position: 0.0
+      description: "Fully open"
+
+    close:
+      position: 0.04  # For 2F-85 gripper
+      description: "Fully closed"
+
+    grasp_cube:
+      position: 0.025
+      description: "Grasp 5cm cube"
+
+# Waypoints for navigation
+navigation_waypoints:
+  home:
+    position: [0.0, 0.0, 0.0]
+    orientation: [0.0, 0.0, 0.0, 1.0]  # quaternion [x, y, z, w]
+
+  pick_location:
+    position: [2.0, 1.0, 0.0]
+    orientation: [0.0, 0.0, 0.0, 1.0]
+
+  place_location:
+    position: [2.0, -1.0, 0.0]
+    orientation: [0.0, 0.0, 0.707, 0.707]  # 90 degrees rotation
+
+  charging_station:
+    position: [-1.0, 0.0, 0.0]
+    orientation: [0.0, 0.0, 1.0, 0.0]  # 180 degrees rotation
+
+# Pick and place task parameters
+pick_place:
+  # Approach distances
+  approach_distance: 0.15  # meters
+  retreat_distance: 0.15   # meters
+
+  # Grasp parameters
+  grasp_force: 50.0  # Newtons
+  grasp_speed: 0.05  # m/s
+
+  # Object detection parameters
+  detection_timeout: 5.0  # seconds
+  max_retries: 3
+
+# Mobile manipulation coordination
+mobile_manipulation:
+  # Control modes
+  modes:
+    navigation_only:
+      base: "active"
+      arm: "locked"
+      gripper: "open"
+
+    manipulation_only:
+      base: "locked"
+      arm: "active"
+      gripper: "active"
+
+    coordinated:
+      base: "active"
+      arm: "active"
+      gripper: "active"
+
+  # Safety zones
+  safety:
+    min_base_arm_distance: 0.3  # meters
+    max_arm_reach: 0.85         # meters
+    workspace_limits:
+      x: [-3.0, 3.0]
+      y: [-3.0, 3.0]
+      z: [0.0, 2.0]
+
+# Task sequences
+task_sequences:
+  simple_pick_place:
+    - action: "navigate"
+      target: "pick_location"
+    - action: "set_arm"
+      pose: "pre_grasp"
+    - action: "detect_object"
+      timeout: 5.0
+    - action: "approach_object"
+      distance: 0.15
+    - action: "grasp"
+      force: 50.0
+    - action: "retreat"
+      distance: 0.15
+    - action: "set_arm"
+      pose: "transport"
+    - action: "navigate"
+      target: "place_location"
+    - action: "set_arm"
+      pose: "place"
+    - action: "release"
+    - action: "set_arm"
+      pose: "home"
+    - action: "navigate"
+      target: "home"

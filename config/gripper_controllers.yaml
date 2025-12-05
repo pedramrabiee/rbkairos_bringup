@@ -1,0 +1,27 @@
+# Gripper Controllers Configuration for RB-Kairos+
+# Author: Pedram Rabiee (prabiee@3laws.io)
+#
+# This file configures the gripper controller for Gazebo Ignition simulation.
+# The joint name includes the namespace prefix (rbkairos_gripper_).
+# Note: Controller type is defined in robotnik_description/simulators/gazebo_ignition/rbkairos/rbkairos_controller_params.yaml
+
+/**/gripper_controller:
+  ros__parameters:
+    # For Robotiq 2F-85 gripper
+    # Joint name: {prefix}gripper_robotiq_85_left_knuckle_joint
+    # The joint has position command interface with range [0.0, 0.8] (closed to open)
+    joint: rbkairos_gripper_robotiq_85_left_knuckle_joint
+
+    # Action server monitoring rate
+    action_monitor_rate: 20.0
+
+    # Goal tolerance (radians)
+    goal_tolerance: 0.01
+
+    # Maximum effort (N)
+    max_effort: 235.0
+
+    # Stall detection (for simulation this may not trigger)
+    allow_stalling: false
+    stall_velocity_threshold: 0.001
+    stall_timeout: 1.0
