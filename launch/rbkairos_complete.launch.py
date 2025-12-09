@@ -114,52 +114,36 @@ def launch_setup(context, *args, **kwargs):
     )
     launch_components.append(spawn_robot)
 
-    # 4b. Launch RViz with MoveIt plugin (after robot spawns)
+    # 4b. Launch MoveIt for Gazebo (move_group + RViz) if enabled
     use_moveit = modules_config['manipulation']['enabled']
-    rviz_config_file = os.path.join(bringup_pkg, 'config', 'rviz', 'rbkairos.rviz')
 
-    # Load SRDF for MoveIt MotionPlanning plugin in RViz
-    srdf_path = os.path.join(moveit_config_pkg, 'srdf', 'rbkairos.srdf')
-    with open(srdf_path, 'r') as f:
-        robot_description_semantic = {'robot_description_semantic': f.read()}
-
-    # Load kinematics config for MoveIt (must be loaded as YAML, not path)
-    kinematics_yaml_path = os.path.join(moveit_config_pkg, 'config', 'kinematics.yaml')
-    with open(kinematics_yaml_path, 'r') as f:
-        kinematics_config = yaml.safe_load(f)
-
-    rviz_node = TimerAction(
-        period=5.0,  # Wait for robot to spawn
-        actions=[
-            Node(
-                package='rviz2',
-                executable='rviz2',
-                name='rviz2',
-                namespace=namespace,  # Run in robot namespace so topics resolve correctly
-                arguments=['-d', rviz_config_file],
-                parameters=[
-                    robot_description_semantic,
-                    {'robot_description_kinematics': kinematics_config},
-                    {'use_sim_time': True},
-                ],
-                output='screen',
-            )
-        ]
-    )
-    launch_components.append(rviz_node)
-
-    # 4c. Launch MoveIt if enabled
     if use_moveit:
+        # Determine prefixes for MoveIt (matches Gazebo joint names)
+        # In Gazebo, joints/links are prefixed:
+        #   - Arm: rbkairos_arm_shoulder_pan_joint
+        #   - Gripper: rbkairos_gripper_robotiq_85_left_knuckle_joint
+        #   - Base: rbkairos_base_link, rbkairos_top_cover, etc.
+        arm_prefix = f'{namespace}_arm_' if namespace else ''
+        gripper_prefix = f'{namespace}_gripper_' if namespace else 'gripper_'
+        base_prefix = f'{namespace}_' if namespace else ''
+
+        # Launch MoveIt using gazebo_moveit.launch.py which is designed for Gazebo integration
+        # - Uses Gazebo's robot_description topic
+        # - Uses Gazebo's controller names (joint_trajectory_controller)
+        # - Runs in the correct namespace
         moveit_launch = TimerAction(
-            period=6.0,  # Wait for RViz to start
+            period=8.0,  # Wait for robot to spawn and controllers to load
             actions=[
                 IncludeLaunchDescription(
                     PythonLaunchDescriptionSource([
-                        PathJoinSubstitution([moveit_config_pkg, 'launch', 'moveit.launch.py'])
+                        PathJoinSubstitution([bringup_pkg, 'launch', 'gazebo_moveit.launch.py'])
                     ]),
                     launch_arguments={
-                        'use_rviz': 'false',  # RViz already launched above
-                        'use_sim_time': 'true',
+                        'namespace': namespace,
+                        'arm_prefix': arm_prefix,
+                        'gripper_prefix': gripper_prefix,
+                        'base_prefix': base_prefix,
+                        'use_rviz': 'true',
                     }.items()
                 )
             ]
