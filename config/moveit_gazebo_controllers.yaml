@@ -1,0 +1,30 @@
+# MoveIt controller configuration for Gazebo integration
+# Uses Gazebo's controller names and prefixed joint names
+# Arm joints: rbkairos_arm_*
+# Gripper joints: rbkairos_gripper_*
+
+moveit_controller_manager: moveit_simple_controller_manager/MoveItSimpleControllerManager
+
+moveit_simple_controller_manager:
+  controller_names:
+    - joint_trajectory_controller
+    - gripper_controller
+
+  joint_trajectory_controller:
+    type: FollowJointTrajectory
+    joints:
+      - rbkairos_arm_shoulder_pan_joint
+      - rbkairos_arm_shoulder_lift_joint
+      - rbkairos_arm_elbow_joint
+      - rbkairos_arm_wrist_1_joint
+      - rbkairos_arm_wrist_2_joint
+      - rbkairos_arm_wrist_3_joint
+    action_ns: follow_joint_trajectory
+    default: true
+
+  gripper_controller:
+    type: GripperCommand
+    joints:
+      - rbkairos_gripper_robotiq_85_left_knuckle_joint
+    action_ns: gripper_cmd
+    default: true

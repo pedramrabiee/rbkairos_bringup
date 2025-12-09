@@ -19,6 +19,8 @@ from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from moveit_configs_utils import MoveItConfigsBuilder
+from ament_index_python.packages import get_package_share_directory
+import os
 
 
 def launch_setup(context, *args, **kwargs):
@@ -31,11 +33,17 @@ def launch_setup(context, *args, **kwargs):
     base_prefix = LaunchConfiguration("base_prefix").perform(context)
     use_rviz = LaunchConfiguration("use_rviz").perform(context).lower() == 'true'
 
+    # Get package paths
+    bringup_pkg = get_package_share_directory('rbkairos_bringup')
+
     # Build MoveIt config using MoveItConfigsBuilder
     # Key differences for Gazebo:
     # 1. Do NOT load robot_description - we get it from Gazebo's topic
     # 2. Use gazebo_controllers.yaml which has prefixed joint names and Gazebo controller names
     # 3. Pass arm_prefix, gripper_prefix, and base_prefix to SRDF xacro
+    # Path to Gazebo-specific controller config (in bringup package)
+    gazebo_controllers_yaml = os.path.join(bringup_pkg, 'config', 'moveit_gazebo_controllers.yaml')
+
     moveit_config = (
         MoveItConfigsBuilder("ur5e_robotiq", package_name="rbkairos_moveit_config")
         # Note: We intentionally skip .robot_description() - Gazebo provides it
@@ -47,7 +55,7 @@ def launch_setup(context, *args, **kwargs):
                 "base_prefix": base_prefix,
             }
         )
-        .trajectory_execution(file_path="config/gazebo_controllers.yaml")
+        .trajectory_execution(file_path=gazebo_controllers_yaml)
         .to_moveit_configs()
     )
 
@@ -109,7 +117,8 @@ def launch_setup(context, *args, **kwargs):
             {"use_sim_time": True},
         ]
 
-        rviz_config = str(moveit_config.package_path / "config" / "moveit.rviz")
+        # Use Gazebo-specific RViz config (has Move Group Namespace set)
+        rviz_config = os.path.join(bringup_pkg, 'config', 'rviz', 'moveit_gazebo.rviz')
 
         rviz_node = Node(
             package="rviz2",
