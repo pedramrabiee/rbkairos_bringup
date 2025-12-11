@@ -16,6 +16,7 @@ Author: Pedram Rabiee (prabiee@3laws.io)
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
+from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from moveit_configs_utils import MoveItConfigsBuilder
@@ -32,6 +33,7 @@ def launch_setup(context, *args, **kwargs):
     gripper_prefix = LaunchConfiguration("gripper_prefix").perform(context)
     base_prefix = LaunchConfiguration("base_prefix").perform(context)
     use_rviz = LaunchConfiguration("use_rviz").perform(context).lower() == 'true'
+    publish_map_odom_tf = LaunchConfiguration("publish_map_odom_tf")
 
     # Get package paths
     bringup_pkg = get_package_share_directory('rbkairos_bringup')
@@ -61,17 +63,20 @@ def launch_setup(context, *args, **kwargs):
 
     launch_nodes = []
 
-    # Publish static transform from world to odom (required for MoveIt planning frame)
-    # The virtual joint in SRDF connects world -> rbkairos_base_footprint
-    # But Gazebo's TF tree starts at rbkairos_odom, so we need world -> rbkairos_odom
-    static_tf_world_to_odom = Node(
+    # Publish static transform from map to odom (required for MoveIt planning frame)
+    # The virtual joint in SRDF connects map -> rbkairos_base_footprint
+    # But Gazebo's TF tree starts at rbkairos_odom, so we need map -> rbkairos_odom
+    # NOTE: When Nav2 is running, SLAM/AMCL publishes this transform dynamically
+    # This static publisher is only used when Nav2 is NOT running
+    static_tf_map_to_odom = Node(
+        condition=IfCondition(publish_map_odom_tf),
         package="tf2_ros",
         executable="static_transform_publisher",
-        name="world_to_odom_publisher",
-        arguments=["0", "0", "0", "0", "0", "0", "world", f"{base_prefix}odom"],
+        name="map_to_odom_publisher",
+        arguments=["0", "0", "0", "0", "0", "0", "map", f"{base_prefix}odom"],
         parameters=[{"use_sim_time": True}],
     )
-    launch_nodes.append(static_tf_world_to_odom)
+    launch_nodes.append(static_tf_map_to_odom)
 
     # Build parameters for move_group, excluding robot_description (comes from topic)
     # We need to manually construct the dict without robot_description
@@ -117,8 +122,12 @@ def launch_setup(context, *args, **kwargs):
             {"use_sim_time": True},
         ]
 
-        # Use Gazebo-specific RViz config (has Move Group Namespace set)
-        rviz_config = os.path.join(bringup_pkg, 'config', 'rviz', 'moveit_gazebo.rviz')
+        # Use custom RViz config if provided, otherwise default to moveit_gazebo.rviz
+        rviz_config_arg = LaunchConfiguration("rviz_config").perform(context)
+        if rviz_config_arg:
+            rviz_config = rviz_config_arg
+        else:
+            rviz_config = os.path.join(bringup_pkg, 'config', 'rviz', 'moveit_gazebo.rviz')
 
         rviz_node = Node(
             package="rviz2",
@@ -163,6 +172,16 @@ def generate_launch_description():
             "use_rviz",
             default_value="true",
             description="Launch RViz with MoveIt plugin"
+        ),
+        DeclareLaunchArgument(
+            "rviz_config",
+            default_value="",
+            description="Custom RViz config file path (optional, defaults to moveit_gazebo.rviz)"
+        ),
+        DeclareLaunchArgument(
+            "publish_map_odom_tf",
+            default_value="true",
+            description="Publish static map->odom transform (set to false when using Nav2)"
         ),
         OpaqueFunction(function=launch_setup),
     ])

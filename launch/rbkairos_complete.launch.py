@@ -57,7 +57,9 @@ def launch_setup(context, *args, **kwargs):
     launch_components = []
 
     # 1. Launch Gazebo world
-    world_name = world_config['name']
+    # Allow world override via launch argument
+    world_override = LaunchConfiguration('world').perform(context)
+    world_name = world_override if world_override else world_config['name']
     gui = LaunchConfiguration('gui')
 
     gazebo_world = IncludeLaunchDescription(
@@ -116,6 +118,7 @@ def launch_setup(context, *args, **kwargs):
 
     # 4b. Launch MoveIt for Gazebo (move_group + RViz) if enabled
     use_moveit = modules_config['manipulation']['enabled']
+    launch_nav2_arg = LaunchConfiguration('launch_nav2').perform(context).lower() == 'true'
 
     if use_moveit:
         # Determine prefixes for MoveIt (matches Gazebo joint names)
@@ -126,6 +129,14 @@ def launch_setup(context, *args, **kwargs):
         arm_prefix = f'{namespace}_arm_' if namespace else ''
         gripper_prefix = f'{namespace}_gripper_' if namespace else 'gripper_'
         base_prefix = f'{namespace}_' if namespace else ''
+
+        # Determine which RViz config to use:
+        # - If Nav2 is enabled, use combined rbkairos_full.rviz (Nav2 + MoveIt)
+        # - Otherwise, use moveit_gazebo.rviz (MoveIt only)
+        if launch_nav2_arg or modules_config['navigation']['enabled']:
+            rviz_config = os.path.join(bringup_pkg, 'config', 'rviz', 'rbkairos_full.rviz')
+        else:
+            rviz_config = os.path.join(bringup_pkg, 'config', 'rviz', 'moveit_gazebo.rviz')
 
         # Launch MoveIt using gazebo_moveit.launch.py which is designed for Gazebo integration
         # - Uses Gazebo's robot_description topic
@@ -144,6 +155,9 @@ def launch_setup(context, *args, **kwargs):
                         'gripper_prefix': gripper_prefix,
                         'base_prefix': base_prefix,
                         'use_rviz': 'true',
+                        'rviz_config': rviz_config,
+                        # Disable static map->odom TF when Nav2 is enabled (SLAM/AMCL publishes it)
+                        'publish_map_odom_tf': 'false' if (launch_nav2_arg or modules_config['navigation']['enabled']) else 'true',
                     }.items()
                 )
             ]
@@ -174,11 +188,30 @@ def launch_setup(context, *args, **kwargs):
         )
         launch_components.append(gripper_controller_spawner)
 
-    # 6. Navigation stack (if enabled)
-    if modules_config['navigation']['enabled']:
-        nav2_config = os.path.join(bringup_pkg, 'config', modules_config['navigation']['config_file'])
-        # TODO: Add Nav2 launch
-        pass
+    # 6. Navigation stack (if enabled via config or launch argument)
+    # Note: launch_nav2_arg already defined above in section 4b
+    use_slam_arg = LaunchConfiguration('use_slam').perform(context).lower() == 'true'
+    map_file_arg = LaunchConfiguration('map').perform(context)
+
+    if modules_config['navigation']['enabled'] or launch_nav2_arg:
+        nav2_launch = TimerAction(
+            period=10.0,  # Wait for robot, controllers, and TF to be ready
+            actions=[
+                IncludeLaunchDescription(
+                    PythonLaunchDescriptionSource([
+                        PathJoinSubstitution([bringup_pkg, 'launch', 'nav2.launch.py'])
+                    ]),
+                    launch_arguments={
+                        'namespace': namespace,
+                        'use_sim_time': 'true',
+                        'use_slam': str(use_slam_arg).lower(),
+                        'map': map_file_arg,
+                        'params_file': os.path.join(bringup_pkg, 'config', 'nav2_params.yaml'),
+                    }.items()
+                )
+            ]
+        )
+        launch_components.append(nav2_launch)
 
     # 7. MoveIt2 is launched above (4c) if manipulation is enabled
 
@@ -222,6 +255,27 @@ def generate_launch_description():
             'rviz',
             default_value='false',
             description='Launch RViz'
+        ),
+        # Nav2 arguments
+        DeclareLaunchArgument(
+            'launch_nav2',
+            default_value='false',
+            description='Launch Nav2 navigation stack'
+        ),
+        DeclareLaunchArgument(
+            'use_slam',
+            default_value='false',
+            description='Use SLAM instead of AMCL (for mapping)'
+        ),
+        DeclareLaunchArgument(
+            'map',
+            default_value='',
+            description='Path to map yaml file (required if launch_nav2=true and use_slam=false)'
+        ),
+        DeclareLaunchArgument(
+            'world',
+            default_value='',
+            description='Override world name from config (e.g., demo for obstacles)'
         ),
     ]
 

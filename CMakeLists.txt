@@ -8,11 +8,13 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 
-# Install launch files
+# Install launch files, config, urdf, maps, and scripts
 install(DIRECTORY
   launch
   config
   urdf
+  maps
+  scripts
   DESTINATION share/${PROJECT_NAME}/
 )
 
