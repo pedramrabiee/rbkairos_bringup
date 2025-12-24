@@ -18,6 +18,9 @@
   <exec_depend>ros2_controllers</exec_depend>
   <exec_depend>nav2_bringup</exec_depend>
   <exec_depend>moveit_ros_move_group</exec_depend>
+  <exec_depend>lll_moveit</exec_depend>
+  <exec_depend>lll_nav2</exec_depend>
+  <exec_depend>lll_mtc</exec_depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

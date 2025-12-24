@@ -1,0 +1,50 @@
+# Joint limits for Gazebo simulation (prefixed joint names)
+# Matches the prefixed URDF used by Gazebo
+#
+# IMPORTANT: Acceleration limits are REQUIRED for proper trajectory timing.
+# Without them, Time Optimal Trajectory Generation (TOTG) cannot compute valid
+# trajectories and ros2_control will reject them with "Time between points is not
+# strictly increasing" errors.
+#
+# The UR5e acceleration limits below (2.5 rad/s²) are conservative values based
+# on UR documentation. Adjust as needed for your application.
+
+default_velocity_scaling_factor: 0.1
+default_acceleration_scaling_factor: 0.1
+
+joint_limits:
+  rbkairos_arm_shoulder_pan_joint:
+    has_velocity_limits: true
+    max_velocity: 2.0943
+    has_acceleration_limits: true
+    max_acceleration: 2.5
+  rbkairos_arm_shoulder_lift_joint:
+    has_velocity_limits: true
+    max_velocity: 2.0943
+    has_acceleration_limits: true
+    max_acceleration: 2.5
+  rbkairos_arm_elbow_joint:
+    has_velocity_limits: true
+    max_velocity: 3.1416
+    has_acceleration_limits: true
+    max_acceleration: 2.5
+  rbkairos_arm_wrist_1_joint:
+    has_velocity_limits: true
+    max_velocity: 3.1416
+    has_acceleration_limits: true
+    max_acceleration: 2.5
+  rbkairos_arm_wrist_2_joint:
+    has_velocity_limits: true
+    max_velocity: 3.1416
+    has_acceleration_limits: true
+    max_acceleration: 2.5
+  rbkairos_arm_wrist_3_joint:
+    has_velocity_limits: true
+    max_velocity: 3.1416
+    has_acceleration_limits: true
+    max_acceleration: 2.5
+  rbkairos_gripper_robotiq_85_left_knuckle_joint:
+    has_velocity_limits: true
+    max_velocity: 0.5
+    has_acceleration_limits: false
+    max_acceleration: 0
