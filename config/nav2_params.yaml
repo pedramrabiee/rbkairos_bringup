@@ -6,12 +6,12 @@
 amcl:
   ros__parameters:
     use_sim_time: true
-    # Initial pose - set to origin (where robot spawns in Gazebo)
+    # Initial pose - must match spawn position in robot_config.yaml
     # This allows AMCL to start publishing transforms immediately
     set_initial_pose: true
     initial_pose:
-      x: 0.0
-      y: 0.0
+      x: -4.0
+      y: -2.0
       z: 0.0
       yaw: 0.0
     alpha1: 0.2
@@ -39,7 +39,7 @@ amcl:
     recovery_alpha_fast: 0.0
     recovery_alpha_slow: 0.0
     resample_interval: 1
-    robot_model_type: "nav2_amcl::OmniMotionModel"  # Omnidirectional!
+    robot_model_type: "nav2_amcl::OmniMotionModel" # Omnidirectional!
     save_pose_rate: 0.5
     sigma_hit: 0.2
     tf_broadcast: true
@@ -79,7 +79,7 @@ controller_server:
     use_sim_time: true
     controller_frequency: 20.0
     min_x_velocity_threshold: 0.001
-    min_y_velocity_threshold: 0.001  # Enable for omnidirectional
+    min_y_velocity_threshold: 0.001 # Enable for omnidirectional
     min_theta_velocity_threshold: 0.001
     failure_tolerance: 0.3
     progress_checker_plugins: ["progress_checker"]
@@ -88,48 +88,59 @@ controller_server:
     odom_topic: odom
 
     # Progress checker
+    # required_movement_radius must be smaller than xy_goal_tolerance
+    # otherwise progress check fails before goal check succeeds
     progress_checker:
       plugin: "nav2_controller::SimpleProgressChecker"
-      required_movement_radius: 0.5
-      movement_time_allowance: 10.0
+      required_movement_radius: 0.1
+      movement_time_allowance: 20.0
 
-    # Goal checker
+    # Goal checker - must match DWB xy_goal_tolerance
     general_goal_checker:
       stateful: true
       plugin: "nav2_controller::SimpleGoalChecker"
-      xy_goal_tolerance: 0.25
-      yaw_goal_tolerance: 0.25
+      xy_goal_tolerance: 0.5
+      yaw_goal_tolerance: 0.5
 
     # DWB Controller for omnidirectional robot
     FollowPath:
       plugin: "dwb_core::DWBLocalPlanner"
       debug_trajectory_details: true
       min_vel_x: -0.5
-      min_vel_y: -0.5  # Enable strafing
+      min_vel_y: -0.5 # Enable strafing
       max_vel_x: 0.5
-      max_vel_y: 0.5   # Enable strafing
+      max_vel_y: 0.5 # Enable strafing
       max_vel_theta: 1.0
       min_speed_xy: 0.0
       max_speed_xy: 0.7
       min_speed_theta: 0.0
       acc_lim_x: 2.5
-      acc_lim_y: 2.5   # Enable y acceleration
+      acc_lim_y: 2.5 # Enable y acceleration
       acc_lim_theta: 3.2
       decel_lim_x: -2.5
       decel_lim_y: -2.5
       decel_lim_theta: -3.2
       vx_samples: 20
-      vy_samples: 10   # Sample y velocities for omnidirectional
+      vy_samples: 10 # Sample y velocities for omnidirectional
       vtheta_samples: 20
       sim_time: 1.7
       linear_granularity: 0.05
       angular_granularity: 0.025
       transform_tolerance: 0.2
-      xy_goal_tolerance: 0.25
-      trans_stopped_velocity: 0.25
+      xy_goal_tolerance: 0.5
+      trans_stopped_velocity: 0.05
       short_circuit_trajectory_evaluation: true
       stateful: true
-      critics: ["RotateToGoal", "Oscillation", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist"]
+      critics:
+        [
+          "RotateToGoal",
+          "Oscillation",
+          "BaseObstacle",
+          "GoalAlign",
+          "PathAlign",
+          "PathDist",
+          "GoalDist",
+        ]
       BaseObstacle.scale: 0.02
       PathAlign.scale: 32.0
       PathAlign.forward_point_distance: 0.1
@@ -153,7 +164,7 @@ local_costmap:
       width: 3
       height: 3
       resolution: 0.05
-      robot_radius: 0.4  # RB-Kairos footprint radius
+      robot_radius: 0.4 # RB-Kairos footprint radius
       plugins: ["voxel_layer", "inflation_layer"]
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
@@ -243,7 +254,7 @@ global_costmap:
 map_server:
   ros__parameters:
     use_sim_time: true
-    yaml_filename: ""  # Set via launch argument
+    yaml_filename: "" # Set via launch argument
 
 map_saver:
   ros__parameters:
@@ -280,7 +291,8 @@ behavior_server:
     costmap_topic: local_costmap/costmap_raw
     footprint_topic: local_costmap/published_footprint
     cycle_frequency: 10.0
-    behavior_plugins: ["spin", "backup", "drive_on_heading", "assisted_teleop", "wait"]
+    behavior_plugins:
+      ["spin", "backup", "drive_on_heading", "assisted_teleop", "wait"]
     spin:
       plugin: "nav2_behaviors/Spin"
     backup:
@@ -317,7 +329,7 @@ velocity_smoother:
     smoothing_frequency: 20.0
     scale_velocities: false
     feedback: "OPEN_LOOP"
-    max_velocity: [0.5, 0.5, 1.0]  # [x, y, theta] - omnidirectional
+    max_velocity: [0.5, 0.5, 1.0] # [x, y, theta] - omnidirectional
     min_velocity: [-0.5, -0.5, -1.0]
     max_accel: [2.5, 2.5, 3.2]
     max_decel: [-2.5, -2.5, -3.2]
