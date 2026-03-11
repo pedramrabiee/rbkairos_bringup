@@ -104,8 +104,8 @@ def launch_setup(context, *args, **kwargs):
     launch_components.append(spawn_robot)
 
     # 3. Spawn gripper controller (simulation-specific)
+    # Gripper params are defined in rbkairos_controller_params.yaml (robotnik_description)
     if use_gripper == "true":
-        gripper_controller_config = os.path.join(bringup_pkg, "config", "gripper_controllers.yaml")
         gripper_controller_spawner = TimerAction(
             period=8.0,
             actions=[
@@ -115,8 +115,6 @@ def launch_setup(context, *args, **kwargs):
                     namespace=namespace,
                     arguments=[
                         "gripper_controller",
-                        "--param-file",
-                        gripper_controller_config,
                         "--controller-manager",
                         f"/{namespace}/controller_manager",
                     ],
