@@ -104,6 +104,8 @@ def launch_setup(context, *args, **kwargs):
     launch_components.append(spawn_robot)
 
     # 3. Spawn gripper controller (simulation-specific)
+    # Note: forward_velocity_controller and joint_state_broadcaster are spawned
+    # automatically by spawn_robot.launch.py for all controllers in rbkairos_controller_params.yaml
     # Gripper params are defined in rbkairos_controller_params.yaml (robotnik_description)
     if use_gripper == "true":
         gripper_controller_spawner = TimerAction(
